@@ -1,15 +1,42 @@
-binary_string = '111100001111000000001111000011110000'
-print(binary_string)
+polynomial = "1001"
+
+def xor_division(dividend:str, divisor:str)->str:
+    n = len(divisor)
+    pick = n
+    temp = dividend[:pick]
+    
+    while pick < len(dividend):
+        if temp[0] == '1':
+            temp = format(int(temp, 2)^int(divisor, 2), '0{}b'.format(n))
+        temp = temp[1:]+dividend[pick]
+        pick += 1
+        
+    if temp[0] == '1':
+        temp = format(int(temp, 2)^int(divisor, 2), '0{}b'.format(n))
+        
+    return temp[1:]
 
 def generate_crc(data):
-    polynomial = '1101'  # Example polynomial
-    data = data + '000'  # Append zeros for CRC
-    while '1' in data[:len(data) - len(polynomial) + 1]:
-        pos = data.index('1')
-        data = data[:pos] + ''.join(
-            '0' if d == p else '1'
-            for d, p in zip(data[pos:pos + len(polynomial)], polynomial)
-        ) + data[pos + len(polynomial):]
-    return data
+    dividend = data + '0'*(len(polynomial)-1)
+    
+    rem = xor_division(dividend, polynomial)
+    
+    data_to_send = data+rem
+    return data_to_send
 
-print(generate_crc(binary_string))
+def verify_crc(data:str)->bool:
+    dividend = data
+    
+    rem = xor_division(dividend, polynomial)
+    return int(rem, 2)==0
+
+if __name__ == "__main__":
+    import injecterror
+    binary_string = '1111000011110000000011101111'
+    print(binary_string)
+    data_to_send = generate_crc(binary_string)
+    print(data_to_send)
+    recieved_data = data_to_send
+    recieved_data = injecterror.injecterror(data_to_send, errcnt=2)
+    print(recieved_data)
+    print(verify_crc(recieved_data))

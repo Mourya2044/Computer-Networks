@@ -1,9 +1,3 @@
-binary_string = '111100001111000000001111000011110000'
-# decimal_value = int(binary_string, 2)
-# print(decimal_value)
-# binary_string = format(decimal_value, 'b')
-print(binary_string)
-
 chunk = 16
 bit_size = 4
 
@@ -33,7 +27,7 @@ def generate_checksum(data: str) -> str:
     data_to_send = ''.join(checksum_strings)
     return data_to_send
 
-def verify_checksum(data):
+def verify_checksum(data:str)->bool:
     n = len(data)
     word_size = chunk + bit_size
     if(n%word_size != 0):
@@ -62,15 +56,21 @@ def verify_checksum(data):
     
     return True
             
+
+if __name__ == "__main__":        
+    import injecterror
+    binary_string = '111100001111000000001111000011110000'
+    # decimal_value = int(binary_string, 2)
+    # print(decimal_value)
+    # binary_string = format(decimal_value, 'b')
+    print(binary_string)
+            
             
 
-import injecterror
-        
-        
-
-data_to_send = generate_checksum(binary_string)
-print(data_to_send)
-# recieved_data = injecterror.injecterror('111100001111000000001111000011110000')
-recieved_data = '111100001111000000001111000011110000'
-isValid = verify_checksum(recieved_data)
-print(isValid)
+    data_to_send = generate_checksum(binary_string)
+    print(data_to_send)
+    recieved_data = data_to_send
+    recieved_data = injecterror.injecterror(data_to_send, errcnt=2)
+    print(recieved_data)
+    isValid = verify_checksum(recieved_data)
+    print(isValid)
