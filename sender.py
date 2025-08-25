@@ -1,3 +1,29 @@
+"""
+sender.py
+A Python script to send file data over a TCP socket using either checksum or CRC error detection methods.
+Each chunk of the file is processed to generate a codeword (checksum or CRC), with optional error injection.
+The codeword and metadata are sent to a receiver server.
+Usage:
+    python sender.py <file_path> <method> [crc_polynomial]
+Arguments:
+    file_path         Path to the input file to be sent.
+    method            Error detection method: "checksum" or "crc".
+    crc_polynomial    (Required if method is "crc") Polynomial to use for CRC calculation.
+Modules:
+    socket            For network communication.
+    sys               For command-line argument handling.
+    checksum          Custom module for checksum generation.
+    crc               Custom module for CRC generation.
+    injecterror       Custom module for error injection.
+    random            For probabilistic error injection.
+Functions:
+    main()            Handles argument parsing, file reading, codeword generation, error injection, and data transmission.
+Notes:
+    - Data is sent in chunks of 16 characters.
+    - With 20% probability, an error is injected into the codeword before sending.
+    - The message format sent to the receiver is: "<method>:<polynomial>:<error>:<codeword>\n"
+    - Requires a receiver server listening on HOST:PORT.
+"""
 import socket
 import sys
 import checksum
@@ -24,7 +50,7 @@ def main():
             print("Usage: python sender.py <file_path> crc <crc_polynomial>")
             return
         polynomial = sys.argv[3]
-        crc.polynomial = polynomial  # set global polynomial
+        # crc.polynomial = polynomial  # set global polynomial
 
     try:
         with open(file_path, 'r') as f, socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -39,16 +65,18 @@ def main():
                 if method == "checksum":
                     codeword = checksum.generate_checksum(data)
                 elif method == "crc":
-                    codeword = crc.generate_crc(data)
+                    codeword = crc.generate_crc(data, polynomial)
                 else:
                     print(f"Error: Unknown method '{method}'")
                     return
 
                 # Inject error with 20% probability
+                error = 0
                 if random.random() < 0.2:
                     codeword = injecterror.injecterror(codeword)
+                    error = 1
 
-                message = f"{method}:{polynomial}:{codeword}\n"
+                message = f"{method}:{polynomial}:{error}:{codeword}\n"
                 s.sendall(message.encode("utf-8"))
                 print(f"Sent: {codeword}")
 
