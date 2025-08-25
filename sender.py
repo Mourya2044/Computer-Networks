@@ -34,6 +34,12 @@ import random
 HOST = '127.0.0.1'
 PORT = 3000
 
+SRC_ADDR = "00000001"
+DEST_ADDR = "00000010"
+CODEWORD_SIZE = 64
+HEADER_SIZE = 16   # 8 src + 8 dest
+PAYLOAD_SIZE = CODEWORD_SIZE - HEADER_SIZE  # 48 bits
+
 def main():
     if len(sys.argv) < 3:
         print("Usage: python sender.py <file_path> <method> [crc_polynomial]")
@@ -42,7 +48,7 @@ def main():
     file_path = sys.argv[1]
     method = sys.argv[2]
 
-    chunk_size = 16  # characters per chunk
+    chunk_size = PAYLOAD_SIZE
     polynomial = ""
 
     if method == "crc":
@@ -58,14 +64,18 @@ def main():
             print(f"Connected to {HOST}:{PORT}")
 
             while True:
-                data = f.read(chunk_size)
+                data = f.read(PAYLOAD_SIZE - HEADER_SIZE)  # leave space for header inside 64 bits
                 if not data:
                     break
 
+                # Combine header + payload
+                frame_data = SRC_ADDR + DEST_ADDR + data
+
+                # Generate full codeword (header+payload protected)
                 if method == "checksum":
-                    codeword = checksum.generate_checksum(data)
+                    codeword = checksum.generate_checksum(frame_data)
                 elif method == "crc":
-                    codeword = crc.generate_crc(data, polynomial)
+                    codeword = crc.generate_crc(frame_data, polynomial)
                 else:
                     print(f"Error: Unknown method '{method}'")
                     return
@@ -76,9 +86,17 @@ def main():
                     codeword = injecterror.injecterror(codeword)
                     error = 1
 
+                # Pad or truncate to 64 bits
+                # if len(codeword) < CODEWORD_SIZE:
+                #     codeword = codeword.ljust(CODEWORD_SIZE, "0")
+                # else:
+                #     codeword = codeword[:CODEWORD_SIZE]
+
+                # Send
                 message = f"{method}:{polynomial}:{error}:{codeword}\n"
                 s.sendall(message.encode("utf-8"))
-                print(f"Sent: {codeword}")
+                print(f"Sent frame: {message} (len={len(codeword)})")
+
 
         print("File transfer complete.")
 

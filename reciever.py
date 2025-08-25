@@ -62,14 +62,28 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                     print(f"Invalid message format: {message}")
                     continue
 
+                # --- Enforce frame size ---
+                if len(codeword) != 64:
+                    print(f"Invalid frame length: {len(codeword)} (expected 64)")
+                    continue
+
+                # --- Extract header + payload ---
+                src_addr = codeword[:8]
+                dest_addr = codeword[8:16]
+                payload = codeword[16:]  # last 48 bits
+
+                print(f"\nFrame received:")
+                print(f"  SRC:  {src_addr}")
+                print(f"  DEST: {dest_addr}")
+                print(f"  DATA: {payload}")
+
+                # --- Verify only on payload ---
                 is_valid = False
                 if method == "checksum":
                     is_valid = checksum.verify_checksum(codeword)
                 elif method == "crc":
                     is_valid = crc.verify_crc(codeword, polynomial)
-                else:
-                    print(f"Unknown method: {method}")
-                    continue
+
                 
                 if is_valid == bool(error):
                     correct_detection_count += 1
