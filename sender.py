@@ -34,11 +34,11 @@ import random
 HOST = '127.0.0.1'
 PORT = 3000
 
-SRC_ADDR = "00000001"
-DEST_ADDR = "00000010"
-CODEWORD_SIZE = 64
-HEADER_SIZE = 16   # 8 src + 8 dest
-PAYLOAD_SIZE = CODEWORD_SIZE - HEADER_SIZE  # 48 bits
+SRC_ADDR = "000000010000000100000001000000010000000100000001"
+DEST_ADDR = "000000100000001000000010000000100000001000000010"
+CODEWORD_SIZE = 64*8
+HEADER_SIZE = 12*8
+PAYLOAD_SIZE = CODEWORD_SIZE - HEADER_SIZE
 
 def main():
     if len(sys.argv) < 3:
@@ -48,7 +48,7 @@ def main():
     file_path = sys.argv[1]
     method = sys.argv[2]
 
-    chunk_size = PAYLOAD_SIZE
+    # chunk_size = PAYLOAD_SIZE
     polynomial = ""
 
     if method == "crc":
@@ -64,17 +64,24 @@ def main():
             print(f"Connected to {HOST}:{PORT}")
 
             while True:
-                data = f.read(PAYLOAD_SIZE - HEADER_SIZE)  # leave space for header inside 64 bits
-                if not data:
-                    break
 
                 # Combine header + payload
-                frame_data = SRC_ADDR + DEST_ADDR + data
 
                 # Generate full codeword (header+payload protected)
                 if method == "checksum":
+                    data = f.read(PAYLOAD_SIZE - 2*8)
+                    print("length of data read from file: ",len(data))
+                    if not data:
+                        break
+                    frame_data = SRC_ADDR + DEST_ADDR + data
                     codeword = checksum.generate_checksum(frame_data)
+                    print("length of extra bit: ", len(codeword) - len(frame_data))
                 elif method == "crc":
+                    x = int(polynomial.split('-')[1])
+                    data = f.read(PAYLOAD_SIZE - x)
+                    if not data:
+                        break
+                    frame_data = SRC_ADDR + DEST_ADDR + data
                     codeword = crc.generate_crc(frame_data, polynomial)
                 else:
                     print(f"Error: Unknown method '{method}'")
